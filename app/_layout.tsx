@@ -68,6 +68,23 @@ export default function Layout() {
           }}
         />
         <Tabs.Screen
+          name="add-bet"
+          options={{
+            title: "Add Bet",
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="add-circle" size={size} color={color} />
+            ),
+          }}
+          listeners={{
+            tabPress: (e) => {
+              if (!session) {
+                e.preventDefault();
+                router.push("/account");
+              }
+            },
+          }}
+        />
+        <Tabs.Screen
           name="account"
           options={{
             title: session ? "Profile" : "Sign In",
