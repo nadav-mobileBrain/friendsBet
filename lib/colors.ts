@@ -2,15 +2,16 @@ const colors = {
   // Main colors
   primary: "#3498db", // Blue
   secondary: "#2ecc71", // Green
-  tertiary: "#9b59b6", // Purple
+  tertiary: "#e67e22", // Orange
+  danger: "#e74c3c", // Red
 
   // Background colors
   background: "#121212",
   surface: "#1E1E1E",
 
   // Text colors
-  textPrimary: "#FFFFFF",
-  textSecondary: "#B3B3B3",
+  textPrimary: "#3498db",
+  textSecondary: "#2ecc71",
 
   // Status colors
   success: "#27ae60",
