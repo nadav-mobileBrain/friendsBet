@@ -9,10 +9,8 @@ const colors = {
   surface: "#1E1E1E",
 
   // Text colors
-  textPrimary: "#3498db",
-  textSecondary: "#2ecc71",
-  textTertiary: "#808080",
-  textQuaternary: "#404040",
+  textPrimary: "#FFFFFF",
+  textSecondary: "#B3B3B3",
 
   // Status colors
   success: "#27ae60",

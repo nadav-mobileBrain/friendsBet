@@ -5,13 +5,16 @@ import {
   TextInput,
   StyleSheet,
   Platform,
-  Alert,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import colors from "../lib/colors";
 import AppButton from "../components/AppButton";
+import ErrorField from "../components/ErrorField";
 import * as Yup from "yup";
+import { supabase } from "../lib/supabase";
+import { useRouter } from "expo-router";
 
 // Define the validation schema
 const validationSchema = Yup.object().shape({
@@ -30,8 +33,11 @@ export default function AddBet() {
   const [endDate, setEndDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async () => {
+    setLoading(true);
     try {
       const formData = {
         betSubject,
@@ -41,13 +47,38 @@ export default function AddBet() {
 
       await validationSchema.validate(formData, { abortEarly: false });
 
-      console.log(formData);
+      // Get the current user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      // Insert the bet into Supabase
+      const { data, error } = await supabase.from("bets").insert({
+        user_id: user.id,
+        bet_subject: formData.betSubject,
+        amount: formData.amount,
+        end_date: formData.endDate.toISOString(),
+      });
+
+      if (error) {
+        console.error("Supabase error:", error);
+        throw new Error(`Failed to add bet: ${error.message}`);
+      }
+
+      console.log("Bet added successfully:", data);
+
       // Reset form fields after successful submission
       setBetSubject("");
       setAmount("");
       setEndDate(new Date());
       setErrors({});
-      Alert.alert("Success", "Bet added successfully!");
+
+      // Navigate to "All Bets"
+      router.replace("/");
     } catch (error) {
       if (error instanceof Yup.ValidationError) {
         const newErrors: { [key: string]: string } = {};
@@ -58,9 +89,13 @@ export default function AddBet() {
         });
         setErrors(newErrors);
       } else {
-        console.error(error);
-        Alert.alert("Error", "An unexpected error occurred");
+        console.error("Error in handleSubmit:", error);
+        setErrors({
+          general: (error as Error).message || "An unexpected error occurred",
+        });
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -84,9 +119,7 @@ export default function AddBet() {
         }}
         placeholderTextColor={colors.textSecondary}
       />
-      {errors.betSubject && (
-        <Text style={styles.errorText}>{errors.betSubject}</Text>
-      )}
+      <ErrorField error={errors.betSubject} />
       <TextInput
         style={styles.input}
         placeholder="Amount"
@@ -98,7 +131,7 @@ export default function AddBet() {
         keyboardType="numeric"
         placeholderTextColor={colors.textSecondary}
       />
-      {errors.amount && <Text style={styles.errorText}>{errors.amount}</Text>}
+      <ErrorField error={errors.amount} />
       <AppButton
         title={`End Date: ${endDate.toLocaleDateString()}`}
         onPress={() => setShowDatePicker(true)}
@@ -106,7 +139,7 @@ export default function AddBet() {
         color={colors.textPrimary}
         style={styles.dateButton}
       />
-      {errors.endDate && <Text style={styles.errorText}>{errors.endDate}</Text>}
+      <ErrorField error={errors.endDate} />
       {showDatePicker && (
         <DateTimePicker
           testID="dateTimePicker"
@@ -118,11 +151,16 @@ export default function AddBet() {
           minimumDate={new Date()} // Set minimum date to today
         />
       )}
-      <AppButton
-        title="Add Bet"
-        onPress={handleSubmit}
-        style={styles.submitButton}
-      />
+      <ErrorField error={errors.general} />
+      {loading ? (
+        <ActivityIndicator size="large" color={colors.primary} />
+      ) : (
+        <AppButton
+          title="Add Bet"
+          onPress={handleSubmit}
+          style={styles.submitButton}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -134,7 +172,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   title: {
-    fontSize: 24,
+    fontSize: 34,
     fontWeight: "bold",
     color: colors.textPrimary,
     marginBottom: 20,
@@ -145,16 +183,12 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 5,
+    fontSize: 20,
   },
   dateButton: {
     marginBottom: 5,
   },
   submitButton: {
     marginTop: 20,
-  },
-  errorText: {
-    color: colors.error,
-    fontSize: 18,
-    marginBottom: 10,
   },
 });
